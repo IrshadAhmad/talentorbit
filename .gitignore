@@ -1,0 +1,58 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment variables
+.env
+*.env
+
+# Database files (MongoDB data files, if using local storage)
+data/
+
+# Pydantic Settings / Beanie-specific files
+*.pydantic-settings
+*.db
+
+# Logs
+*.log
+
+# Docker-related
+*.docker/
+docker-compose.override.yml
+
+# Coverage
+.coverage
+.coverage.*
+
+# Test directories
+*.pytest_cache/
+*.tox/
+nosetests.xml
+coverage.xml
+*.hypothesis/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# macOS specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
+Desktop.ini
