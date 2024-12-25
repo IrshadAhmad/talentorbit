@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.user_schema import UserLogin
+from app.schemas.auth_schema import UserLogin
 from app.services.auth_service import login_user
 
 auth_router = APIRouter()
