@@ -1,46 +1,47 @@
-from fastapi import APIRouter, UploadFile, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, Request
 from app.services.resume_service import ResumeService
-from app.repositories.resume_repository import ResumeRepository
-from app.schemas.resume_schema import ResumeResponse
-from typing import List
+from typing import Optional
+from app.models.resume_model import Resume
 
-router = APIRouter()
+resume_router = APIRouter()
+resume_service = ResumeService()
 
-@router.post("/upload", response_model=ResumeResponse)
-async def upload_resume(file: UploadFile, user_id: str):
-    """
-    Upload and process a resume.
-    """
-    if file.content_type not in ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
-        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF and DOCX are allowed.")
-    
-    resume = await ResumeService.upload_and_process_resume(file, user_id)
-    return ResumeResponse(**resume.dict())
 
-@router.get("/{resume_id}", response_model=ResumeResponse)
-async def get_resume(resume_id: str):
-    """
-    Fetch a resume by its ID.
-    """
-    resume = await ResumeRepository.get_resume_by_id(resume_id)
-    if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found.")
-    return ResumeResponse(**resume.dict())
+@resume_router.post("/")
+async def upload_file(file: UploadFile, request: Request):
+    form_data = await request.form()
+    file_type = form_data.get("file_type")
+    # body = await request.json()  # Parse JSON body
+    # print("Request Body:", body)
+    return await resume_service.resume_upload(file, file_type, request)
 
-@router.get("/", response_model=List[ResumeResponse])
-async def get_all_resumes():
-    """
-    Fetch all resumes.
-    """
-    resumes = await ResumeRepository.get_all_resumes()
-    return [ResumeResponse(**resume.dict()) for resume in resumes]
 
-@router.delete("/{resume_id}")
-async def delete_resume(resume_id: str):
-    """
-    Delete a resume by its ID.
-    """
-    success = await ResumeRepository.delete_resume(resume_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Resume not found.")
-    return {"detail": "Resume deleted successfully"}
+@resume_router.get("/")
+async def get_resume():
+    return await resume_service.get_all_resume()
+
+
+@resume_router.get("/resume_id/")
+async def get_resume_by_id_query(request: Request):
+    return await resume_service.get_resume_by_id(request)
+
+
+@resume_router.get("/resume_id/{resume_id}/")
+async def get_resume_by_id_path(request: Request, resume_id: str):
+    return await resume_service.get_resume_by_id(request, resume_id)
+
+
+@resume_router.put("/")
+async def update_user_resume(request: Request, payload: Resume):
+    return await resume_service.update_resume(request, payload)
+
+
+@resume_router.delete("/{resume_id}")
+async def delete_resume_by_id(resume_id: str):
+    return await resume_service.delete_resume(resume_id)
+
+
+############generate-json-resume#############
+@resume_router.post("/generate-json-resume")
+async def generate_resume(request: Request):
+    return await resume_service.generate_json_resume(request)

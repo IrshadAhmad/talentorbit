@@ -10,8 +10,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMP_UPLOADS_DIR = os.path.join(BASE_DIR, "../temp_uploads")
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = MONGODB_URI
-    DATABASE_NAME: str = MONGO_DB_NAME
-    PROJECT_NAME: str = MONGO_DB_NAME
+    PROJECT_NAME: str
+    DATABASE_URL: str
+    DATABASE_NAME: str
+    TEMP_UPLOADS_DIR: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    OPENAI_API_KEY: str
+    
+    class Config:
+        env_file = ".env"
 
 settings = Settings()

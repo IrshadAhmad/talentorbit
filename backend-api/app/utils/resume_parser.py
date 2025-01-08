@@ -1,42 +1,50 @@
-from PyPDF2 import PdfReader
-from docx import Document as DocxDocument
-from typing import Dict
+import pdfplumber
+from docx import Document
+from fastapi import HTTPException
 
 def extract_text_from_pdf(file_path: str) -> str:
-    text = ""
-    reader = PdfReader(file_path)
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+    content = ""
+    try:
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                content += page.extract_text() + "\n"
+    except Exception as e:
+        raise HTTPException(status_code=422,detail=f"Error reading PDF file. The file is corrupted or invalid.: {str(e)}")
+    return content
 
-def extract_text_from_docx(file_path: str) -> str:
-    doc = DocxDocument(file_path)
-    return "\n".join([para.text for para in doc.paragraphs])
+def extract_text_from_doc(file_path: str) -> str:
+    content = ""
+    try:
+        doc = Document(file_path)
+        for paragraph in doc.paragraphs:
+            content += paragraph.text + "\n"
+    except Exception as e:
+        raise HTTPException(status_code=422,detail=f"Error reading DOC/DOCX file:  The file is corrupted or invalid.: {str(e)}")
 
-def extract_resume_data(file_path: str) -> Dict:
+    return content
+
+
+def merge_resume_data(existing_data: dict, new_data: dict) -> dict:
     """
-    Extract relevant information from a resume file (PDF/DOCX).
+    Merges existing resume data with new resume data.
+    Keeps old values if new values are empty.
     """
-    if file_path.endswith(".pdf"):
-        text = extract_text_from_pdf(file_path)
-    elif file_path.endswith(".docx"):
-        text = extract_text_from_docx(file_path)
-    else:
-        raise ValueError("Unsupported file format")
+    if not existing_data:  # Handle cases where existing data is None
+        return new_data
 
-    # Mocked data extraction logic. Replace with NLP or other parsing logic.
-    return {
-        "name": "John Doe",
-        "contact": "john.doe@example.com",
-        "summary": ["Experienced software engineer."],
-        "education": ["Bachelor's in Computer Science"],
-        "certifications": ["AWS Certified Developer"],
-        "skills": ["Python", "Django", "FastAPI"],
-        "work_experiences": ["3 years at XYZ Corp as a software engineer."],
-        "projects": ["E-commerce app development"],
-        "achievements": ["Employee of the Year 2023"],
-        "internships": ["Summer internship at ABC Inc."],
-        "volunteer_works": ["Volunteered at Local Community Center"],
-        "languages": ["English", "Spanish"],
-        "hobbies_and_interests": ["Cycling", "Reading"]
-    }
+    for key, value in new_data.items():
+        if key in existing_data:
+            if isinstance(value, dict) and isinstance(existing_data[key], dict):
+                # Recursively merge dictionaries
+                existing_data[key] = merge_resume_data(existing_data[key], value)
+            elif isinstance(value, list) and isinstance(existing_data[key], list):
+                # Merge lists (extend with new data or keep old if new is empty)
+                if value:  # Use the new list if it's not empty
+                    existing_data[key] = value
+            elif value or value == 0:  # Update scalar values only if new value is non-empty
+                existing_data[key] = value
+        else:
+            # Add new key-value pair if not present in existing data
+            existing_data[key] = value
+
+    return existing_data

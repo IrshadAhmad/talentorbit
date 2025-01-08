@@ -5,17 +5,20 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.core.database import db
 from app.core.config import settings
-from app.routers.user_router import router as user_router
+from app.routers.user_router import user_router
 from app.routers.auth_router import auth_router
-from app.routers import resume_router
-from app.core.config import TEMP_UPLOADS_DIR
-
+from app.routers.resume_router import resume_router
+from app.middlewares.cors_middleware import add_cors_middleware
+from app.middlewares.auth_middleware import AuthMiddleware
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+add_cors_middleware(app)
 
 @app.on_event("startup")
 async def startup_event():
     await db.connect()
+    print("Connected to MongoDB: "+settings.DATABASE_NAME)
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -23,9 +26,9 @@ async def shutdown_event():
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/users", tags=["Users"])
-app.include_router(resume_router.router, prefix="/resume", tags=["resumes"])
+app.include_router(resume_router, prefix="/resumes", tags=["resumes"])
 
-os.makedirs(TEMP_UPLOADS_DIR, exist_ok=True)
+os.makedirs(settings.TEMP_UPLOADS_DIR, exist_ok=True)
 
 @app.get("/")
 async def read_root():

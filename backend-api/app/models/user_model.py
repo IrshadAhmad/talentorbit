@@ -1,3 +1,4 @@
+from datetime import datetime
 from beanie import Document
 from pydantic import EmailStr, BaseModel, Field
 from bson import ObjectId
@@ -8,6 +9,8 @@ class User(Document):
     email: EmailStr
     hashed_password: Optional[str] = None
     is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:
         name = "users"

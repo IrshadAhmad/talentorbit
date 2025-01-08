@@ -2,7 +2,9 @@
 from datetime import timedelta
 from app.core.security import hash_password, verify_password
 from app.core.jwt import create_access_token
-from app.repositories.auth_respository import find_user_by_email, create_user
+from app.models.user_model import User
+from app.repositories.auth_respository import find_user_by_email, register_user
+from app.schemas.user_schema import UserCreate, UserUpdate
 
 async def authenticate_user(email: str, password: str):
     """
@@ -25,12 +27,14 @@ async def login_user(email: str, password: str):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-async def register_user(username: str, email: str, password: str):
-    """
-    Register a new user after hashing the password.
-    """
-    existing_user = await find_user_by_email(email)
+async def register_user(user: UserCreate):
+    existing_user = await find_user_by_email(user.email)
     if existing_user:
         raise ValueError("User with this email already exists")
-    hashed_password = hash_password(password)
-    return await create_user(username, email, hashed_password)
+    hashed_password = hash_password(user.password)
+    return await register_user(user)
+
+# async def register_user(self, data: UserCreate) -> User:
+#         hashed_password = hash_password(data.password)
+#         user = User(username=data.username, email=data.email, hashed_password=hashed_password)
+#         return await self.repository.create_user(user)

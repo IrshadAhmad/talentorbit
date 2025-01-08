@@ -1,53 +1,78 @@
-import os
-from fastapi import UploadFile
-from bson import ObjectId
-from app.utils.resume_parser import extract_resume_data
+from fastapi import HTTPException, UploadFile, Request
+from typing import Optional
+from app.models.resume_model import Resume
 from app.repositories.resume_repository import ResumeRepository
+from pydantic import ValidationError
 
-TEMP_UPLOADS_DIR = "temp_uploads"
-os.makedirs(TEMP_UPLOADS_DIR, exist_ok=True)
 
 class ResumeService:
-    @staticmethod
-    async def upload_and_process_resume(file: UploadFile, user_id: str):
-        # Ensure the temp_uploads directory exists
-        file_path = os.path.join(TEMP_UPLOADS_DIR, file.filename)
+    def __init__(self):
+        self.resume_repository = ResumeRepository()
 
+    async def resume_upload(self, file: UploadFile, file_type: Optional[str], request: Request):
+        """
+        Upload and store a resume file using ResumeRepository.
+        """
         try:
-            # Save the file locally
-            print(f"Saving file to: {file_path}")
-            with open(file_path, "wb") as buffer:
-                buffer.write(await file.read())
-
-            # Extract data from the resume
-            extracted_data = extract_resume_data(file_path)
-
-            # Add user-related metadata
-            extracted_data["user_id"] = user_id
-
-            # Save resume data to the database
-            resume = await ResumeRepository.create_resume(extracted_data)
-        finally:
-            # Clean up the temporary file
-            ResumeService.cleanup_temp_file(file_path)
-
-        return resume
-
-    @staticmethod
-    def cleanup_temp_file(file_path: str):
-        try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            return await self.resume_repository.resume_upload(file, file_type, request)
+        except HTTPException as exc:
+            raise exc
         except Exception as e:
-            print(f"Failed to delete file {file_path}: {e}")
-    
-    @staticmethod
-    async def get_resume_by_id(resume_id: str):
-        # Convert string ID to ObjectId before querying the database
-        resume = await ResumeService.get(ObjectId(resume_id))
-        if resume:
-            # Convert ObjectId to string before returning
-            resume_dict = resume.dict()
-            resume_dict["id"] = str(resume.id)  # Ensure the ID is returned as a string
-            return resume_dict
-        return None
+            raise HTTPException(status_code=500, detail=f"Error uploading resume: {str(e)}")
+
+    async def get_all_resume(self):
+        """
+        Retrieve all resumes using ResumeRepository.
+        """
+        try:
+            return await self.resume_repository.get_all_resumes()
+        except HTTPException as exc:
+            raise exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching resumes: {str(e)}")
+
+    async def get_resume_by_id(self, request: Request, resume_id: Optional[str] = None):
+        """
+        Retrieve a resume by ID or user ID using ResumeRepository.
+        """
+        try:
+            return await self.resume_repository.get_resume_by_id(request, resume_id)
+        except HTTPException as exc:
+            raise exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching resume by ID: {str(e)}")
+
+    async def update_resume(self, request: Request, payload: Resume):
+        """
+        Update a resume using ResumeRepository.
+        """
+        try:
+            return await self.resume_repository.update_resume(request, payload)
+        except ValidationError as ve:
+            raise HTTPException(status_code=422, detail=ve.errors())
+        except HTTPException as exc:
+            raise exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error updating resume: {str(e)}")
+
+    async def delete_resume(self, resume_id: str):
+        """
+        Delete a resume by ID using ResumeRepository.
+        """
+        try:
+            return await self.resume_repository.delete_resume(resume_id)
+        except HTTPException as exc:
+            raise exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error deleting resume: {str(e)}")
+
+    async def generate_json_resume(self, request: Request):
+        """
+        Generate a JSON resume using ResumeRepository.
+        """
+        try:
+            return await self.resume_repository.generate_json_resume(request)
+        except HTTPException as exc:
+            raise exc
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error generating JSON resume: {str(e)}")

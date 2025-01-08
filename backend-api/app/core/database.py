@@ -19,8 +19,11 @@ class Database:
         if self.client:
             self.client.close()
 
+    def get_database(self):
+        if not self.client:
+            raise Exception("Database client is not initialized. Did you forget to call connect?")
+        return self.client[settings.DATABASE_NAME]
+
+
 # Create a global instance of the Database class
 db = Database()
-
-    
-
